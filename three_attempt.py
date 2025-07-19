@@ -43,6 +43,11 @@ def get_target_location(current_location, offset_x_m, offset_y_m):
     newlon = current_location.lon + (dLon * 180 / math.pi)
     return LocationGlobalRelative(newlat, newlon, current_location.alt)
 
+def get_distance_meters(loc1, loc2):
+    dlat = loc2.lat - loc1.lat
+    dlon = loc2.lon - loc1.lon
+    return math.sqrt((dlat * 1.113195e5)**2 + (dlon * 1.113195e5)**2)
+
 # Load YOLO model
 model = YOLO('c:/Users/Hemhalatha V R/Downloads/best_model_in_the_world.pt')
 
@@ -89,7 +94,13 @@ def detect(n):
 
         print("Navigating to target "+n)
         vehicle.simple_goto(target_location)
-        time.sleep(10)
+        while True:
+            current_loc = vehicle.location.global_relative_frame
+            distance = get_distance_meters(current_loc, target_location)
+            if distance < 0.8:
+                time.sleep(10)
+                break
+            time.sleep(1)
 
 detected=False
 
