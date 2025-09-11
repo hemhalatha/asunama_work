@@ -1,9 +1,12 @@
+print("code running...")
 from dronekit import connect, VehicleMode, LocationGlobalRelative
 import time
 import math
 import cv2
 from ultralytics import YOLO  
-from pymavlink import mavutil
+#from pymavlink import mavutil
+
+#G-STREAMER
 
 # Connect to the drone (e.g., SITL or telemetry)
 print("code running...")
@@ -14,7 +17,7 @@ vehicle.mode = VehicleMode("GUIDED")
 # Camera specs (in mm and px — tune these)
 sensor_width_mm = 7.6      # mm (horizontal sensor size)
 focal_length_mm = 4.6      # mm
-altitude_m = 10            # will be updated when flying
+altitude_m = 10          # will be updated when flying
 
 def arm_and_takeoff(target_altitude):
     print("Arming motors...")
@@ -74,33 +77,29 @@ model = YOLO('c:/Users/Hemhalatha V R/Downloads/best_model_in_the_world.pt')
 
 
 # Initialize camera
-cap1 = cv2.VideoCapture('rtsp://192.168.144.25:8554/main.264')
-cap=cv2.imread(cap1,0)
+cap = cv2.VideoCapture('rtsp://192.168.144.25:8554/main.264')
+print("camera connected")
 
-detected=False
+arm_and_takeoff(altitude_m)
 
-def detect(n):
-    global detected
-    
+while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         print("cant capture image")
-        return
-    
-    frame1=cv2.flip(frame,-1)
-    frame1=cv2.resize(frame1,(640,640))
-    image_width_px = frame1.shape[1] #(height,width)
-    image_height_px = frame1.shape[0]
+        break
+
+    image_width_px = frame.shape[1] #(height,width)
+    image_height_px = frame.shape[0]
 
     # GSD: meters per pixel
     GSD = (sensor_width_mm * vehicle.location.global_relative_frame.alt) / (focal_length_mm * image_width_px)
-    
-    results = model(frame1)
-
-    if results and results[0].boxes:
-        detected=True
+    results = model(frame)
+    #print("feed")
+    cv2.imshow('frame',frame)
+    if results and results[0].boxes is not None and len(results[0].boxes) > 0:
         annotated_frame = results[0].plot() 
-        cv2.imwrite(f"output_{n}.jpg", annotated_frame)
+        cv2.imshow('frame',annotated_frame)
+        cv2.imwrite("a_img3.jpg", annotated_frame)
         box = results[0].boxes[0]
         xmin, ymin, xmax, ymax = box.xyxy[0]
 
@@ -131,30 +130,20 @@ def detect(n):
         distance = get_distance_meters(current_location, target_location)
         print("distance: ",distance)
 
-        print("Navigating to target ",n)
+        print("Navigating to target ")
         #trigger_nav=input("enter any key to navigate : ")
 
         vehicle.simple_goto(target_location)
-        while True:
-            current_loc = vehicle.location.global_relative_frame
-            distance = get_distance_meters(current_loc, target_location)
-            if distance < 0.8:
-                time.sleep(5)
-                break
-            time.sleep(1)
+        break
+    
+        
 
-    else:
-        print("Object not detected")
-
-
-
-arm_and_takeoff(15)
-while not detected:
-    detect(1)    # change the value for image changing
 
 print("Landing...")
-trigger_land=input("enter any key to land: ")
+#trigger_land=input("enter any key to land: ")
 vehicle.mode = VehicleMode("LAND")
+
+cv2.destroyAllWindows()
 
 cap.release()
 vehicle.close()
