@@ -99,6 +99,8 @@ while cap.isOpened():
     if results and results[0].boxes is not None and len(results[0].boxes) > 0:
         annotated_frame = results[0].plot() 
         cv2.imshow('frame',annotated_frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
         cv2.imwrite("a_img3.jpg", annotated_frame)
         box = results[0].boxes[0]
         xmin, ymin, xmax, ymax = box.xyxy[0]
